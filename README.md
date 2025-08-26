@@ -1,7 +1,7 @@
 ### Aegis: AI-Powered Emergency Response Platform
 Aegis is a mobile-first, real-time emergency management and risk prediction platform designed for urban environments. It connects citizens facing emergencies directly with authority dispatch centers, using an intelligent risk model to prioritize alerts and streamline the response process.
 
-### 📝 Table of Contents
+### Table of Contents
 Key Features
 
 App Architecture
@@ -24,6 +24,9 @@ A simple, mobile-friendly interface allows citizens to quickly send an alert wit
 
 ### Secure & Scalable Backend: 
 Built on Firebase, the application uses a robust, serverless backend that handles authentication and real-time data efficiently, ensuring reliable performance even under high load.
+
+# Resilient Offline Communication: 
+The app can form a Bluetooth mesh network with nearby devices to relay critical alerts even when cellular networks are down. This ensures that alerts can reach a connected device and be uploaded to the cloud, guaranteeing delivery in crisis situations.
 
 ### App Architecture
 The application follows a client-server architecture, with the client (the web app) communicating directly with the Firebase backend. This allows for a fast, responsive, and highly scalable application.
