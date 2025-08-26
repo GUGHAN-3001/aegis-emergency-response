@@ -1,0 +1,224 @@
+<!-- File: frontend_authority/authority_dashboard.html (Updated) -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #map { height: 100%; width: 100%; background-color: #111827; }
+        .priority-high { border-left: 4px solid #ef4444; }
+        .priority-medium { border-left: 4px solid #f97316; }
+        .priority-low { border-left: 4px solid #eab308; }
+        .selected-alert { background-color: #374151 !important; }
+        .risk-high { background-color: #991b1b; color: #fecaca; }
+        .risk-medium { background-color: #9a3412; color: #fed7aa; }
+        .risk-low { background-color: #a16207; color: #fef08a; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .btn-action { transition: background-color 0.2s; }
+        .btn-action:disabled { background-color: #4b5563; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-gray-800 border-b border-gray-700 px-6 py-3 flex justify-between items-center flex-shrink-0">
+        <div class="flex items-center space-x-4">
+            <svg class="w-8 h-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286zm0 13.036h.008v.008h-.008v-.008z" /></svg>
+            <h1 class="text-2xl font-bold tracking-wider">AEGIS COMMAND CENTER</h1>
+        </div>
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-2"><span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span><span class="text-sm font-medium uppercase tracking-wider">Live</span></div>
+            <div id="clock" class="text-lg font-medium bg-gray-900 px-4 py-1 rounded-md"></div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-[400px] bg-gray-800 flex flex-col border-r border-gray-700 flex-shrink-0">
+            <div class="p-4 border-b border-gray-700"><h2 class="text-lg font-bold">Alert Triage Queue</h2><p id="queue-status" class="text-sm text-gray-400">Fetching live alerts...</p></div>
+            <div id="alert-queue" class="flex-1 overflow-y-auto p-2 space-y-2">
+                <div class="p-3 bg-gray-900 rounded-lg animate-pulse"><div class="h-4 bg-gray-700 rounded w-3/4"></div><div class="h-3 bg-gray-700 rounded w-1/2 mt-2"></div></div>
+            </div>
+        </aside>
+        <main class="flex-1 flex flex-col bg-gray-900">
+            <div id="map"></div>
+        </main>
+        <aside id="dispatch-panel" class="w-[450px] bg-gray-800 flex flex-col border-l border-gray-700 flex-shrink-0">
+            <div id="dispatch-placeholder" class="text-gray-500 h-full flex flex-col items-center justify-center p-8 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                <h3 class="font-bold text-lg">No Alert Selected</h3>
+                <p class="text-sm">Select an alert from the queue to view details.</p>
+            </div>
+            <div id="dispatch-content" class="hidden h-full flex flex-col"></div>
+        </aside>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3phEVM-_zOr5lh4xncnPHPeDSiOy3Nvg&callback=initApp" async defer></script>
+
+    <script>
+        const API_BASE_URL = "http://127.0.0.1:8000";
+        let map;
+        
+        const icons = {
+            FLOOD: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            MEDICAL: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+            FIRE: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
+            STRUCTURE_COLLAPSE: 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+        };
+
+        const dom = {
+            alertQueue: document.getElementById('alert-queue'),
+            dispatchContent: document.getElementById('dispatch-content'),
+            dispatchPlaceholder: document.getElementById('dispatch-placeholder'),
+            clock: document.getElementById('clock'),
+            queueStatus: document.getElementById('queue-status'),
+        };
+        
+        let alertMarkers = {}, activeAlerts = [], selectedAlertId = null;
+
+        // ✅ Make initApp a global function
+        window.initApp = function() {
+            const mapOptions = {
+                center: { lat: 13.0827, lng: 80.2707 },
+                zoom: 12,
+                disableDefaultUI: true,
+                styles: [ { elementType: "geometry", stylers: [{ color: "#242f3e" }] }, { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] }, { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }, { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] }, { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] }, { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] }, { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] }, { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] }, { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] }, { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] }, { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] }, { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] }, { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] }, { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] }, { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] }, { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }, { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] }, { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] } ]
+            };
+            map = new google.maps.Map(document.getElementById("map"), mapOptions);
+
+            setInterval(updateClock, 1000);
+            updateClock();
+            fetchActiveAlerts();
+            setInterval(fetchActiveAlerts, 10000);
+        }
+
+        const updateClock = () => dom.clock.textContent = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata' });
+        const getPriorityClass = alert => (alert.risk.risk_level === 'High' || alert.user.vulnerability_status !== 'NONE') ? 'priority-high' : 'priority-medium';
+        const getAlertIcon = type => ({ FLOOD: '🌊', MEDICAL: '⚕️', FIRE: '🔥', STRUCTURE_COLLAPSE: '🧱' }[type] || '🚨');
+
+        function populateAlertQueue() {
+            dom.alertQueue.innerHTML = '';
+            dom.queueStatus.textContent = `${activeAlerts.length} active alerts. Last updated: ${new Date().toLocaleTimeString()}`;
+            if (activeAlerts.length === 0) {
+                dom.alertQueue.innerHTML = '<p class="text-center text-gray-500 p-4">No active alerts.</p>';
+                return;
+            }
+            activeAlerts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).forEach(alert => {
+                const card = document.createElement('div');
+                card.id = `alert-${alert.id}`;
+                card.className = `p-3 bg-gray-900 rounded-lg cursor-pointer hover:bg-gray-700 ${getPriorityClass(alert)}`;
+                if (alert.id === selectedAlertId) card.classList.add('selected-alert');
+                const riskClass = `risk-${alert.risk.risk_level.toLowerCase()}`;
+                card.innerHTML = `<div class="flex justify-between items-start"><div class="flex-1"><p class="font-bold text-md">${getAlertIcon(alert.alert_type)} ${alert.alert_type}</p><p class="text-sm text-gray-400">${alert.user.full_name}</p></div><div class="text-right flex flex-col items-end"><p class="text-xs text-gray-500">${new Date(alert.created_at).toLocaleTimeString()}</p><span class="px-2 py-1 text-xs font-semibold rounded-full ${riskClass} mt-1">${alert.risk.risk_level} Risk</span></div></div>`;
+                card.addEventListener('click', () => selectAlert(alert.id));
+                dom.alertQueue.appendChild(card);
+            });
+        }
+        
+        async function selectAlert(alertId) {
+            sessionStorage.setItem('selectedAlertId', alertId);
+            selectedAlertId = alertId;
+            const alert = activeAlerts.find(a => a.id === alertId);
+            if (!alert) return;
+            populateAlertQueue();
+            const location = { lat: alert.latitude, lng: alert.longitude };
+            map.panTo(location);
+            map.setZoom(15);
+            if(alertMarkers[alert.id]) alertMarkers[alert.id].setAnimation(google.maps.Animation.BOUNCE);
+            setTimeout(() => { if(alertMarkers[alert.id]) alertMarkers[alert.id].setAnimation(null); }, 1400);
+
+            dom.dispatchPlaceholder.classList.add('hidden');
+            dom.dispatchContent.classList.remove('hidden');
+            const riskClass = `risk-${alert.risk.risk_level.toLowerCase()}`;
+            dom.dispatchContent.innerHTML = `<div class="p-4 border-b border-gray-700"><h2 class="text-lg font-bold">Alert #${alert.id.substring(0,8)}</h2><p class="text-sm text-gray-400">${new Date(alert.created_at).toLocaleString()}</p></div><div class="flex-1 overflow-y-auto p-4 space-y-4"><div><h3 class="font-semibold text-blue-400">USER</h3><p>${alert.user.full_name}</p><p class="text-orange-400">${alert.user.vulnerability_status}</p></div><div><h3 class="font-semibold text-blue-400">INCIDENT</h3><p>${alert.alert_type}</p><p>${alert.details || 'N/A'}</p></div><div><h3 class="font-semibold text-blue-400">AI RISK</h3><div class="p-3 rounded-lg ${riskClass} mt-1"><p>${alert.risk.risk_level} (${(alert.risk.confidence*100).toFixed(0)}%)</p><p class="text-xs mt-1">${alert.risk.reason}</p></div></div><div id="route-prediction"><h3 class="font-semibold text-blue-400">AI ROUTE PREDICTION</h3><div id="route-output" class="p-3 rounded-lg bg-gray-700 mt-1 text-sm">Loading route...</div></div></div><div class="p-4 border-t border-gray-700 flex space-x-2"><button id="ack-btn" class="btn-action flex-1 bg-green-600 hover:bg-green-700 font-bold py-3 rounded-lg">Acknowledge</button><button id="disp-btn" class="btn-action flex-1 bg-blue-600 hover:bg-blue-700 font-bold py-3 rounded-lg">Dispatch</button></div>`;
+            document.getElementById('ack-btn').addEventListener('click', () => handleAlertAction(alert.id, 'acknowledge'));
+            document.getElementById('disp-btn').addEventListener('click', () => handleAlertAction(alert.id, 'dispatch'));
+            fetchRoutePrediction(alert);
+        }
+
+        async function handleAlertAction(alertId, action) {
+            const btn = document.getElementById(action === 'acknowledge' ? 'ack-btn' : 'disp-btn');
+            btn.disabled = true;
+            btn.textContent = `${action.charAt(0).toUpperCase() + action.slice(1)}ing...`;
+            try {
+                // For this prototype, we don't need a token for actions
+                await fetch(`${API_BASE_URL}/alerts/${alertId}/${action}`, { method: 'POST' });
+                if (action === 'dispatch') {
+                    sessionStorage.removeItem('selectedAlertId');
+                    selectedAlertId = null;
+                    dom.dispatchContent.classList.add('hidden');
+                    dom.dispatchPlaceholder.classList.remove('hidden');
+                }
+                fetchActiveAlerts();
+            } catch (error) {
+                console.error(`Failed to ${action} alert:`, error);
+                btn.disabled = false;
+            }
+        }
+
+        async function fetchRoutePrediction(alert) {
+            const outputDiv = document.getElementById('route-output');
+            try {
+                // For this prototype, we don't need a token for route prediction
+                const res = await fetch(`${API_BASE_URL}/ml/route-prediction?lat=${alert.latitude}&lon=${alert.longitude}`);
+                if (!res.ok) throw new Error("Route prediction failed");
+                const route = await res.json();
+                outputDiv.innerHTML = `<p><strong>ETA:</strong> ${route.eta_minutes} mins (${route.distance_km} km)</p><p class="text-xs mt-1"><strong>Route:</strong> ${route.route_summary}</p>`;
+            } catch (error) {
+                outputDiv.innerHTML = `<p class="text-red-400">Could not predict route.</p>`;
+            }
+        }
+
+        function drawMarkers() {
+            Object.values(alertMarkers).forEach(marker => marker.setMap(null));
+            alertMarkers = {};
+            activeAlerts.forEach(alert => {
+                const marker = new google.maps.Marker({
+                    position: { lat: alert.latitude, lng: alert.longitude },
+                    map: map,
+                    icon: icons[alert.alert_type],
+                    title: alert.alert_type
+                });
+                alertMarkers[alert.id] = marker;
+            });
+        }
+
+        async function fetchActiveAlerts() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/alerts/active`);
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const alerts = await res.json();
+                const alertsWithRisk = await Promise.all(alerts.map(async alert => {
+                    // For this prototype, we don't need a token for risk assessment
+                    const riskRes = await fetch(`${API_BASE_URL}/ml/risk?lat=${alert.latitude}&lon=${alert.longitude}`);
+                    return { ...alert, risk: await riskRes.json() };
+                }));
+                activeAlerts = alertsWithRisk;
+                populateAlertQueue();
+                drawMarkers();
+                
+                const rememberedAlertId = sessionStorage.getItem('selectedAlertId');
+                if (rememberedAlertId && activeAlerts.some(a => a.id === rememberedAlertId)) {
+                    selectAlert(rememberedAlertId);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                dom.queueStatus.textContent = "Connection Error";
+                dom.alertQueue.innerHTML = `<p class="text-center text-red-400 p-4">Could not connect to backend.</p>`;
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        fetchActiveAlerts();
+        setInterval(fetchActiveAlerts, 10000);
+        initApp();
+    </script>
+</body>
+</html>
