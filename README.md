@@ -1,4 +1,4 @@
-### 🛡️ Aegis: AI-Powered Emergency Response Platform
+### Aegis: AI-Powered Emergency Response Platform
 Aegis is a mobile-first, real-time emergency management and risk prediction platform designed for urban environments. It connects citizens facing emergencies directly with authority dispatch centers, using an intelligent risk model to prioritize alerts and streamline the response process.
 
 ### 📝 Table of Contents
@@ -12,7 +12,7 @@ Contributing
 
 License
 
-### ✨ Key Features
+### Key Features
 ### Real-time Alerts & Dashboard: 
 The platform provides a live, centralized dashboard for authorities to view incoming alerts on an interactive map. New alerts appear instantly without needing to refresh the page.
 
@@ -25,7 +25,7 @@ A simple, mobile-friendly interface allows citizens to quickly send an alert wit
 ### Secure & Scalable Backend: 
 Built on Firebase, the application uses a robust, serverless backend that handles authentication and real-time data efficiently, ensuring reliable performance even under high load.
 
-### 🏗️ App Architecture
+### App Architecture
 The application follows a client-server architecture, with the client (the web app) communicating directly with the Firebase backend. This allows for a fast, responsive, and highly scalable application.
 
 # Client (Frontend)
@@ -47,7 +47,7 @@ Cloud Firestore: Serves as the real-time database, storing all user data and eme
 # Data Flow:
 A citizen's alert is sent directly from the frontend to Firestore. The authority dashboard, which is constantly listening to the Firestore database, receives the new alert in real time and updates the map and queue automatically.
 
-# 🚀 Getting Started
+# Getting Started
 To run this project, you need to have Node.js and the Firebase CLI installed.
 
 # Clone the repository:
@@ -67,7 +67,7 @@ firebase deploy --only hosting
 
 After deployment, the terminal will provide a live URL for your application.
 
-# 🤝 Contributing
+# Contributing
 We welcome contributions! If you would like to help improve this project, please follow these steps:
 
 Fork the repository.
