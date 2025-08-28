@@ -1,89 +1,345 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.1.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.1.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.1.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Emergency Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #map-citizen, #map-authority { height: 100%; width: 100%; }
+        .mobile-screen { width: 100%; max-width: 420px; height: 100vh; max-height: 900px; }
+        .dashboard-screen { width: 100%; height: 100vh; }
+        .sos-button { box-shadow: 0 0 25px rgba(239, 68, 68, 0.5); }
+        .priority-high { border-left: 4px solid #ef4444; }
+        .priority-medium { border-left: 4px solid #f97316; }
+        .priority-low { border-left: 4px solid #22c55e; }
+        .selected-alert { background-color: #374151 !important; }
+        .risk-high { color: #ef4444; } .risk-medium { color: #f97316; } .risk-low { color: #22c55e; }
     </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+</head>
+<body class="bg-gray-800 flex items-center justify-center h-screen text-white">
+
+    <div id="app-container" class="h-full w-full">
+        <!-- App content will be rendered here by JavaScript -->
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, addDoc, collection, serverTimestamp, query, where, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // --- PASTE YOUR FIREBASE CONFIGURATION HERE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIJwx314tXfjpZpJ7EpBRn8QZ0V1duwQc",
+            authDomain: "aegis-project-2f6a9.firebaseapp.com",
+            projectId: "aegis-project-2f6a9",
+            storageBucket: "aegis-project-2f6a9.appspot.com",
+            messagingSenderId: "254245404836",
+            appId: "1:254245404836:web:62182b19d6f32455956631",
+            measurementId: "G-6ZEV882GL1"
+        };
+        // -----------------------------------------
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const appContainer = document.getElementById('app-container');
+        let map, userMarker, userLocation = { lat: 13.0827, lon: 80.2707 };
+        let alertMarkers = {}, activeAlerts = [], selectedAlertId = null;
+
+        window.initApp = function() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists() && userDoc.data().role === 'authority') {
+                        renderAuthorityDashboard();
+                    } else {
+                        renderCitizenApp();
+                    }
+                } else {
+                    renderLoginScreen();
+                }
+            });
+            getUserLocation();
         }
-      });
+
+        function getUserLocation() {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLocation.lat = position.coords.latitude;
+                    userLocation.lon = position.coords.longitude;
+                    if (map) updateCitizenMapLocation();
+                },
+                () => console.warn("Could not get location, using default.")
+            );
+        }
+        
+        // --- LOCAL RISK PREDICTION LOGIC ---
+        const HIGH_RISK_ZONES = [
+            { name: "Velachery", lat_range: [12.97, 12.99], lon_range: [80.21, 80.23] },
+            { name: "T. Nagar", lat_range: [13.03, 13.05], lon_range: [80.22, 80.24] },
+            { name: "Adyar", lat_range: [13.00, 13.02], lon_range: [80.25, 80.27] },
+        ];
+        
+        const MEDIUM_RISK_ZONES = [
+            { name: "Mylapore", lat_range: [13.02, 13.04], lon_range: [80.26, 80.28] },
+            { name: "Guindy", lat_range: [13.00, 13.02], lon_range: [80.21, 80.23] },
+        ];
+        
+        function getRiskLevel(lat, lon, vulnerability_status) {
+            let risk_level = "Low";
+            let risk_reason = "Not in a known high/medium risk zone.";
+
+            for (const zone of HIGH_RISK_ZONES) {
+                if ((zone.lat_range[0] <= lat && lat <= zone.lat_range[1]) &&
+                    (zone.lon_range[0] <= lon && lon <= zone.lon_range[1])) {
+                    risk_level = "High";
+                    risk_reason = `In high-risk zone: ${zone.name}.`;
+                    break;
+                }
+            }
+        
+            if (risk_level === "Low") {
+                for (const zone of MEDIUM_RISK_ZONES) {
+                    if ((zone.lat_range[0] <= lat && lat <= zone.lat_range[1]) &&
+                        (zone.lon_range[0] <= lon && lon <= zone.lon_range[1])) {
+                        risk_level = "Medium";
+                        risk_reason = `In medium-risk zone: ${zone.name}.`;
+                        break;
+                    }
+                }
+            }
+        
+            if (vulnerability_status && vulnerability_status !== "NONE" && risk_level !== "High") {
+                risk_level = "High";
+                risk_reason = "User has a declared vulnerability status.";
+            }
+            
+            return { risk_level: risk_level, risk_reason: risk_reason };
+        }
+        
+        // --- SHARED AUTH & REGISTRATION LOGIC ---
+        function renderLoginScreen() {
+            appContainer.innerHTML = `<div class="flex items-center justify-center h-full"><div class="w-full max-w-md p-8 space-y-6 bg-gray-900 rounded-lg shadow-lg"><div class="text-center"><h1 class="text-4xl font-bold">Aegis Login</h1><p class="text-gray-400 mt-2">Enter your credentials to continue</p></div><div class="space-y-4"><input id="login-email" type="email" placeholder="Email" class="w-full p-4 bg-gray-800 rounded-lg text-lg text-white"><input id="login-password" type="password" placeholder="Password" class="w-full p-4 bg-gray-800 rounded-lg text-lg text-white"></div><button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 font-bold py-4 rounded-lg mt-8 text-lg">Log In</button><p class="text-center text-sm text-gray-400 mt-6">Don't have an account? <button id="go-to-register-btn" class="font-semibold text-blue-400">Register here</button></p></div></div>`;
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+            document.getElementById('go-to-register-btn').addEventListener('click', renderRegisterScreen);
+        }
+
+        function renderRegisterScreen() {
+            appContainer.innerHTML = `<div class="flex items-center justify-center h-full"><div class="w-full max-w-md p-8 space-y-4 bg-gray-900 rounded-lg shadow-lg"><div class="text-center"><h1 class="text-4xl font-bold">Create Account</h1><p class="text-gray-400 mt-2">Your safety is our priority.</p></div><input id="reg-name" type="text" placeholder="Full Name" class="w-full p-3 bg-gray-800 rounded-lg text-white"><input id="reg-email" type="email" placeholder="Email" class="w-full p-3 bg-gray-800 rounded-lg text-white"><input id="reg-password" type="password" placeholder="Password" class="w-full p-3 bg-gray-800 rounded-lg text-white"><select id="reg-vulnerability" class="w-full p-3 bg-gray-800 rounded-lg text-white"><option value="NONE">Vulnerability Status (None)</option><option value="WHEELCHAIR">Wheelchair User</option><option value="VISUALLY_IMPAIRED">Visually Impaired</option><option value="ELDERLY">Elderly</option></select><button id="register-btn" class="w-full bg-blue-600 hover:bg-blue-700 font-bold py-3 rounded-lg mt-6">Register</button><p class="text-center text-sm text-gray-400 mt-4">Have an account? <button id="go-to-login-btn" class="font-semibold text-blue-400">Log In</button></p></div></div>`;
+            document.getElementById('register-btn').addEventListener('click', handleRegister);
+            document.getElementById('go-to-login-btn').addEventListener('click', renderLoginScreen);
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) { alert(`Login Failed: ${error.message}`); }
+        }
+
+        async function handleRegister() {
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const fullName = document.getElementById('reg-name').value;
+            const vulnerability = document.getElementById('reg-vulnerability').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    fullName: fullName,
+                    email: userCredential.user.email,
+                    vulnerability_status: vulnerability,
+                    role: 'citizen' // Default role
+                });
+            } catch (error) { alert(`Registration Failed: ${error.message}`); }
+        }
+
+        // --- CITIZEN APP LOGIC ---
+        function renderCitizenApp() {
+            appContainer.innerHTML = `<div class="mobile-screen bg-gray-900 text-white flex flex-col overflow-hidden rounded-3xl border-4 border-gray-700 mx-auto"><div id="citizen-app-container" class="h-full"></div></div>`;
+            renderHomeScreen();
+        }
+
+        function renderHomeScreen() {
+            document.getElementById('citizen-app-container').innerHTML = `<div class="flex flex-col h-full"><header class="p-4 flex justify-between items-center bg-gray-900 z-10"><div><h1 class="text-xl font-bold">Aegis</h1><p class="text-sm text-gray-400">Safety Assistant</p></div><button id="logout-btn" class="text-sm text-red-400 hover:text-red-300 font-semibold">Logout</button></header><div class="relative flex-grow"><div id="map-citizen"></div><div class="absolute top-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 backdrop-blur-sm px-4 py-2 rounded-full z-10"><p id="risk-display" class="text-sm font-medium">Risk: <span class="font-bold">...</span></p></div></div><footer class="p-6 bg-gray-900 border-t border-gray-800"><p class="text-center text-gray-400 mb-4">In case of emergency, press below.</p><button id="sos-btn" class="sos-button w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mx-auto border-4 border-red-700/50"><span class="text-3xl font-bold">SOS</span></button></footer></div>`;
+            document.getElementById('sos-btn').addEventListener('click', renderSosScreen);
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            initializeCitizenMap();
+        }
+
+        function renderSosScreen() {
+             document.getElementById('citizen-app-container').innerHTML = `<div class="flex flex-col h-full p-6 bg-gray-900"><h2 class="text-2xl font-bold text-center mt-8">What is your emergency?</h2><div class="grid grid-cols-2 gap-4 mt-12 flex-1"><button class="alert-type-button bg-gray-800 rounded-2xl flex flex-col items-center justify-center p-4" data-alert-type="FLOOD"><span class="text-5xl">🌊</span><span class="mt-2">Flood</span></button><button class="alert-type-button bg-gray-800 rounded-2xl flex flex-col items-center justify-center p-4" data-alert-type="FIRE"><span class="text-5xl">🔥</span><span class="mt-2">Fire</span></button><button class="alert-type-button bg-gray-800 rounded-2xl flex flex-col items-center justify-center p-4" data-alert-type="MEDICAL"><span class="text-5xl">⚕️</span><span class="mt-2">Medical</span></button><button class="alert-type-button bg-gray-800 rounded-2xl flex flex-col items-center justify-center p-4" data-alert-type="STRUCTURE_COLLAPSE"><span class="text-5xl">🧱</span><span class="mt-2">Collapse</span></button></div><button id="cancel-sos-btn" class="mt-8 text-gray-400">Cancel</button></div>`;
+             document.querySelectorAll('.alert-type-button').forEach(btn => btn.addEventListener('click', () => handleSendAlert(btn.dataset.alertType)));
+             document.getElementById('cancel-sos-btn').addEventListener('click', renderHomeScreen);
+        }
+
+        function renderConfirmationScreen() {
+            document.getElementById('citizen-app-container').innerHTML = `<div class="flex flex-col h-full p-8 bg-gray-900 items-center justify-center text-center"><div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center animate-pulse"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div><h2 class="text-3xl font-bold mt-8">Alert Sent</h2><p class="text-gray-300 mt-2 text-lg">Authorities have been notified.</p><button id="back-to-home-btn" class="mt-12 bg-blue-600 hover:bg-blue-700 font-bold py-3 px-8 rounded-full">Done</button></div>`;
+            document.getElementById('back-to-home-btn').addEventListener('click', renderHomeScreen);
+        }
+
+        async function handleSendAlert(alertType) {
+            const user = auth.currentUser;
+            if (!user) { renderLoginScreen(); return; }
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                const vulnerabilityStatus = userDoc.exists() ? userDoc.data().vulnerability_status : 'NONE';
+                
+                const riskData = getRiskLevel(userLocation.lat, userLocation.lon, vulnerabilityStatus);
+                
+                await addDoc(collection(db, "alerts"), { 
+                    userId: user.uid, 
+                    alert_type: alertType, 
+                    latitude: userLocation.lat, 
+                    longitude: userLocation.lon, 
+                    status: "PENDING", 
+                    risk_level: riskData.risk_level, 
+                    risk_reason: riskData.risk_reason,
+                    created_at: serverTimestamp() 
+                });
+                renderConfirmationScreen();
+            } catch (error) { alert(`Error sending alert: ${error.message}`); }
+        }
+
+        function fetchRiskLevel() {
+            const riskDisplaySpan = document.querySelector("#risk-display span");
+            if (!riskDisplaySpan) return;
+            
+            const riskData = getRiskLevel(userLocation.lat, userLocation.lon);
+            
+            riskDisplaySpan.textContent = riskData.risk_level;
+            riskDisplaySpan.className = `font-bold risk-${riskData.risk_level.toLowerCase()}`;
+        }
+
+        function initializeCitizenMap() {
+            const mapElement = document.getElementById("map-citizen");
+            if (!mapElement) return;
+            map = new google.maps.Map(mapElement, { center: { lat: userLocation.lat, lng: userLocation.lon }, zoom: 15, disableDefaultUI: true, styles: [ { elementType: "geometry", stylers: [{ color: "#242f3e" }] }, { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] }, { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] } ] });
+            updateCitizenMapLocation();
+        }
+
+        function updateCitizenMapLocation() {
+            const latLng = { lat: userLocation.lat, lng: userLocation.lon };
+            if (map) map.setCenter(latLng);
+            if (userMarker) {
+                userMarker.setPosition(latLng);
+            } else {
+                userMarker = new google.maps.Marker({ position: latLng, map: map });
+            }
+            fetchRiskLevel();
+        }
+
+        // --- AUTHORITY DASHBOARD LOGIC ---
+        function renderAuthorityDashboard() {
+            appContainer.innerHTML = `<div class="dashboard-screen bg-gray-900 text-white flex flex-col overflow-hidden"><header class="bg-gray-800 border-b border-gray-700 px-6 py-3 flex justify-between items-center flex-shrink-0"><div class="flex items-center space-x-4"><svg class="w-8 h-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286zm0 13.036h.008v.008h-.008v-.008z" /></svg><h1 class="text-2xl font-bold tracking-wider">AEGIS COMMAND CENTER</h1></div><div class="flex items-center space-x-6"><button id="dashboard-btn" class="bg-blue-600 hover:bg-blue-700 font-bold py-2 px-4 rounded-lg">Dashboard</button><div class="flex items-center space-x-2"><span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span><span class="text-sm font-medium uppercase tracking-wider">Live</span></div><div id="clock" class="text-lg font-medium bg-gray-900 px-4 py-1 rounded-md"></div><button id="logout-btn-auth" class="text-sm text-red-400 hover:text-red-300 font-semibold">Logout</button></div></header><div class="flex flex-1 overflow-hidden"><aside class="w-[400px] bg-gray-800 flex flex-col border-r border-gray-700 flex-shrink-0"><div class="p-4 border-b border-gray-700"><h2 class="text-lg font-bold">Alert Triage Queue</h2><p id="queue-status" class="text-sm text-gray-400">Connecting...</p></div><div id="alert-queue" class="flex-1 overflow-y-auto p-2 space-y-2"></div></aside><main class="flex-1 flex flex-col bg-gray-900"><div id="map-authority"></div></main><aside id="dispatch-panel" class="w-[450px] bg-gray-800 flex flex-col border-l border-gray-700 flex-shrink-0"><div id="dispatch-placeholder" class="text-gray-500 h-full flex flex-col items-center justify-center p-8 text-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg><h3 class="font-bold text-lg">No Alert Selected</h3></div><div id="dispatch-content" class="hidden h-full flex flex-col"></div></aside></div></div>`;
+            document.getElementById('logout-btn-auth').addEventListener('click', () => signOut(auth));
+            document.getElementById('dashboard-btn').addEventListener('click', () => {
+                window.open('https://appzjcgarunfa2yo.qraptor.ai/#/dashboard', '_blank');
+            });
+            initializeAuthorityMap();
+        }
+
+        function initializeAuthorityMap() {
+            const mapElement = document.getElementById("map-authority");
+            if (!mapElement) return;
+            map = new google.maps.Map(mapElement, {
+                center: { lat: 13.0827, lng: 80.2707 },
+                zoom: 12,
+                disableDefaultUI: true,
+                styles: [ { elementType: "geometry", stylers: [{ color: "#242f3e" }] }, { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] }, { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] } ]
+            });
+            setInterval(() => {
+                const clockEl = document.getElementById('clock');
+                if(clockEl) clockEl.textContent = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata' })
+            }, 1000);
+            listenForAlerts();
+        }
+
+        function listenForAlerts() {
+            const q = query(collection(db, "alerts"), where("status", "in", ["PENDING"]));
+            onSnapshot(q, async (querySnapshot) => {
+                const alertsPromises = querySnapshot.docs.map(async (alertDoc) => {
+                    const alertData = alertDoc.data();
+                    const userDoc = await getDoc(doc(db, "users", alertData.userId));
+                    return { id: alertDoc.id, ...alertData, user: userDoc.exists() ? userDoc.data() : {} };
+                });
+                activeAlerts = await Promise.all(alertsPromises);
+                renderAlerts();
+            });
+        }
+
+        function renderAlerts() {
+            const alertQueue = document.getElementById('alert-queue');
+            const queueStatus = document.getElementById('queue-status');
+            if(!alertQueue || !queueStatus) return;
+
+            alertQueue.innerHTML = '';
+            queueStatus.textContent = `${activeAlerts.length} active alerts. Real-time feed connected.`;
+
+            const riskLevelOrder = { "High": 3, "Medium": 2, "Low": 1 };
+            activeAlerts.sort((a,b) => riskLevelOrder[b.risk_level] - riskLevelOrder[a.risk_level]).forEach(alert => {
+                const card = document.createElement('div');
+                card.id = `alert-${alert.id}`;
+                
+                let priorityClass = 'priority-low';
+                if (alert.risk_level === 'High') {
+                    priorityClass = 'priority-high';
+                } else if (alert.risk_level === 'Medium') {
+                    priorityClass = 'priority-medium';
+                }
+                
+                card.className = `p-3 bg-gray-900 rounded-lg cursor-pointer hover:bg-gray-700 ${priorityClass}`;
+                if (alert.id === selectedAlertId) card.classList.add('selected-alert');
+
+                card.innerHTML = `<div><p class="font-bold">${alert.alert_type}</p><p class="text-sm text-gray-400">Risk: ${alert.risk_level}</p><p class="text-xs text-gray-500">${alert.user.fullName || 'Unknown User'}</p></div>`;
+                card.addEventListener('click', () => selectAlert(alert.id));
+                alertQueue.appendChild(card);
+            });
+            drawMarkers();
+        }
+
+        function selectAlert(alertId) {
+            selectedAlertId = alertId;
+            const alert = activeAlerts.find(a => a.id === alertId);
+            if (!alert) return;
+            renderAlerts();
+            map.panTo({ lat: alert.latitude, lng: alert.longitude });
+            map.setZoom(15);
+            document.getElementById('dispatch-placeholder').classList.add('hidden');
+            const dispatchContent = document.getElementById('dispatch-content');
+            dispatchContent.classList.remove('hidden');
+            dispatchContent.innerHTML = `<div class="p-4 border-b border-gray-700"><h2 class="text-lg font-bold">Alert #${alert.id.substring(0,8)}</h2></div><div class="flex-1 p-4 space-y-4 overflow-y-auto"><p><strong>User:</strong> ${alert.user.fullName}</p><p><strong>Vulnerability:</strong> ${alert.user.vulnerability_status}</p><p><strong>Type:</strong> ${alert.alert_type}</p><p><strong>Risk Level:</strong> <span class="text-lg font-bold risk-${alert.risk_level.toLowerCase()}">${alert.risk_level}</span></p><p><strong>Reason:</strong> ${alert.risk_reason || 'N/A'}</p></div><div class="p-4 border-t border-gray-700 flex space-x-2"><button id="disp-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 font-bold py-3 rounded-lg">Dispatch</button></div>`;
+            document.getElementById('disp-btn').addEventListener('click', () => handleDispatch(alert.id));
+        }
+
+        async function handleDispatch(alertId) {
+            await updateDoc(doc(db, "alerts", alertId), { status: "DISPATCHED" });
+            selectedAlertId = null;
+            document.getElementById('dispatch-content').classList.add('hidden');
+            document.getElementById('dispatch-placeholder').classList.remove('hidden');
+        }
+
+        function drawMarkers() {
+            Object.values(alertMarkers).forEach(marker => marker.setMap(null));
+            alertMarkers = {};
+            activeAlerts.forEach(alert => {
+                alertMarkers[alert.id] = new google.maps.Marker({
+                    position: { lat: alert.latitude, lng: alert.longitude },
+                    map: map,
+                    title: alert.alert_type
+                });
+            });
+        }
+
+        window.initApp=initApp;
     </script>
-  </body>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3phEVM-_zOr5lh4xncnPHPeDSiOy3Nvg&callback=initApp" async defer></script>
+
+</body>
 </html>
